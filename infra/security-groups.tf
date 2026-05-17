@@ -1,4 +1,3 @@
-# Security Group Frontend (pública)
 resource "aws_security_group" "frontend_sg" {
   vpc_id = aws_vpc.main.id
 
