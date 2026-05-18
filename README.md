@@ -96,11 +96,22 @@ Agregar:
 - AWS_SECRET_ACCESS_KEY
 - AWS_ACCOUNT_ID
 
-## Configuracion de GitHub
+## Configuracion para el lanzamiento
 
 
 ```
+aws configure
 cd infra
 terraform init
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "LINK-ECR.COM"
+```
+
+## CI/CD (Git)
+
+```
+git status
+git add .
+git commit -m "Descripción de los cambios"
+git push origin deploy
 ```
 
