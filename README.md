@@ -74,6 +74,8 @@ DevOps-U2/
 
 ```
 
+---
+
 ## 📦 ¿Qué despliega este proyecto?
 
 | Módulo | Recursos | Descripción |
@@ -81,4 +83,7 @@ DevOps-U2/
 | **Network** | VPC, subred pública/privada, IGW, NAT Gateway, Security Groups | Redes y conectividad |
 | **Compute** | ECS Fargate (Frontend + Backend), EC2 MySQL, ALB | Cómputo y balanceo |
 | **Registry** | ECR (2 repositorios) | Almacenamiento de imágenes Docker |
-| **Observability** | CloudWatch Log Groups | Logs centralizados |
+
+**Soporte multi-entorno:** Variables y outputs configurados mediante `terraform.tfvars` para diferentes entornos (dev, prod).
+
+---
