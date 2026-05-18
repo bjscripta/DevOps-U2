@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_URL: 654654241329.dkr.ecr.us-east-1.amazonaws.com
+  ECR_URL: 851725168010.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
   build-frontend:
