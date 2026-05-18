@@ -113,3 +113,18 @@ git commit -m "Descripción de los cambios"
 git push origin deploy
 ```
 
+## FIXEO
+```
+git clone https://github.com/bjscripta/DevOps-U2.git
+aws configure
+cd DevOps-U2/infra
+terraform init
+terraform apply
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 654654241329.dkr.ecr.us-east-1.amazonaws.com
+docker-compose up
+git add .
+git commit --allow-empty -m "deploy ci/cd"
+git push origin main
+git push origin deploy
+```
+
