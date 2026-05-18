@@ -5,3 +5,7 @@ provider "aws" {
 data "aws_iam_instance_profile" "lab_profile" {
   name = "LabInstanceProfile"
 }
+
+data "aws_iam_role" "lab" {
+  name = "LabRole"
+}

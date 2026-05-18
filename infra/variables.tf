@@ -1,6 +1,12 @@
 variable "aws_region" {
   default = "us-east-1"
 }
-variable "InnovaTech-SPA" {
-  default = "devops"
+
+variable "nombre_proyecto" {
+  default = "innovatech-spa"   
 }
+
+variable "db_user" {}
+variable "db_password" {}
+variable "db_name" {}
+variable "key_pair_name" {}

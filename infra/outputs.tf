@@ -10,7 +10,7 @@ output "backend_private_ip" {
 
 output "data_private_ip" {
   description = "IP privada de la instancia MySQL"
-  value       = aws_instance.data.private_ip
+  value       = aws_instance.db.private_ip
 }
 
 output "vpc_id" {
@@ -23,7 +23,12 @@ output "frontend_sg_id" {
   value       = aws_security_group.frontend_sg.id
 }
 
-# URLs de ECR (si los creas)
-# output "ecr_frontend_url" {
-#   value = aws_ecr_repository.frontend.repository_url
-# }
+output "backend_ecr" {
+  description = "URL del repositorio ECR backend"
+  value       = aws_ecr_repository.backend.repository_url
+}
+
+output "frontend_ecr" {
+  description = "URL del repositorio ECR frontend"
+  value       = aws_ecr_repository.frontend.repository_url
+}
