@@ -36,10 +36,9 @@
 | **Logs** | AWS CloudWatch | Centraliza logs de contenedores |
 | **Infraestructura** | Terraform | Infraestructura como Código (IaC) |
 
-```
-
 ## 📁 Estructura del Proyecto
 
+```
 DevOps-U2/
 ├── backend/
 │ ├── Springboot-API-REST-DESPACHO/
