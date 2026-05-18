@@ -87,3 +87,20 @@ DevOps-U2/
 **Soporte multi-entorno:** Variables y outputs configurados mediante `terraform.tfvars` para diferentes entornos (dev, prod).
 
 ---
+
+## Configuracion de GitHub
+Ir a GitHub → Repositorio → Settings → Secrets and variables → Actions
+Agregar:
+
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- AWS_ACCOUNT_ID
+
+## Configuracion de GitHub
+
+
+```
+cd infra
+terraform init
+```
+
