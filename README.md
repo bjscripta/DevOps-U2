@@ -32,7 +32,6 @@
 | **Base de Datos** | MySQL 8.0 en EC2 | Almacenamiento persistente |
 | **Orquestación** | AWS ECS Fargate | Ejecuta contenedores sin gestionar servidores |
 | **Registro de Imágenes** | AWS ECR | Almacena imágenes Docker privadas |
-| **Balanceo de Carga** | AWS ALB | Expone el frontend a internet |
 | **Logs** | AWS CloudWatch | Centraliza logs de contenedores |
 | **Infraestructura** | Terraform | Infraestructura como Código (IaC) |
 
@@ -80,7 +79,7 @@ DevOps-U2/
 | Módulo | Recursos | Descripción |
 |--------|----------|-------------|
 | **Network** | VPC, subred pública/privada, IGW, NAT Gateway, Security Groups | Redes y conectividad |
-| **Compute** | ECS Fargate (Frontend + Backend), EC2 MySQL, ALB | Cómputo y balanceo |
+| **Compute** | ECS Fargate (Frontend + Backend), EC2 MySQL | Cómputo y balanceo |
 | **Registry** | ECR (2 repositorios) | Almacenamiento de imágenes Docker |
 
 **Soporte multi-entorno:** Variables y outputs configurados mediante `terraform.tfvars` para diferentes entornos (dev, prod).
