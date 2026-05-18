@@ -91,8 +91,8 @@ resource "aws_ecs_task_definition" "frontend" {
       name      = "frontend"
       image     = "${aws_ecr_repository.frontend.repository_url}:latest"
       essential = true
-      memory    = 2048
-      cpu       = 1024
+      memory    = 256
+      cpu       = 256
 
       portMappings = [
         {
@@ -155,8 +155,8 @@ resource "aws_ecs_task_definition" "backend_ventas" {
       name      = "backend-ventas"
       image     = "${aws_ecr_repository.backend.repository_url}:latest"
       essential = true
-      memory    = 2048
-      cpu       = 1024
+      memory    = 256
+      cpu       = 256
 
       portMappings = [
         {
@@ -197,8 +197,8 @@ resource "aws_ecs_task_definition" "backend_despacho" {
       name      = "backend-despacho"
       image     = "${aws_ecr_repository.backend_despacho.repository_url}:latest"
       essential = true
-      memory    = 2048
-      cpu       = 1024
+      memory    = 256
+      cpu       = 256
 
       portMappings = [
         {
