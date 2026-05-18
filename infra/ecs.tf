@@ -1,9 +1,3 @@
-# ============================================================
-# ecs.tf - ECS con EC2, sin ALB, version simplificada
-# Agregar a tu carpeta Terraform existente
-# ============================================================
-
-# AMI optimizada para ECS
 data "aws_ami" "ecs_optimized" {
   most_recent = true
   owners      = ["amazon"]
@@ -19,7 +13,6 @@ resource "aws_ecs_cluster" "main" {
   name = "${var.nombre_proyecto}-cluster"
 }
 
-# Launch Template - instancia EC2 que se une al cluster
 resource "aws_launch_template" "ecs" {
   name_prefix   = "${var.nombre_proyecto}-ecs-"
   image_id      = data.aws_ami.ecs_optimized.id
@@ -39,7 +32,6 @@ resource "aws_launch_template" "ecs" {
   )
 }
 
-# Auto Scaling Group
 resource "aws_autoscaling_group" "ecs" {
   name                = "${var.nombre_proyecto}-ecs-asg"
   desired_capacity    = 1
@@ -59,7 +51,6 @@ resource "aws_autoscaling_group" "ecs" {
   }
 }
 
-# Capacity Provider
 resource "aws_ecs_capacity_provider" "main" {
   name = "${var.nombre_proyecto}-cp"
 
@@ -84,13 +75,11 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# CloudWatch Logs
 resource "aws_cloudwatch_log_group" "ecs_frontend" {
   name              = "/ecs/${var.nombre_proyecto}-frontend"
   retention_in_days = 7
 }
 
-# Task Definition
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.nombre_proyecto}-frontend"
   network_mode             = "bridge"
@@ -125,7 +114,6 @@ resource "aws_ecs_task_definition" "frontend" {
   ])
 }
 
-# ECS Service
 resource "aws_ecs_service" "frontend" {
   name            = "${var.nombre_proyecto}-frontend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -140,17 +128,12 @@ resource "aws_ecs_service" "frontend" {
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
 }
-# ============================================================
-# AGREGAR al ecs.tf existente
-# ============================================================
 
-# ECR para backend despacho
 resource "aws_ecr_repository" "backend_despacho" {
   name         = "${var.nombre_proyecto}-backend-despacho"
   force_delete = true
 }
 
-# CloudWatch Logs para backends
 resource "aws_cloudwatch_log_group" "ecs_backend_ventas" {
   name              = "/ecs/${var.nombre_proyecto}-backend-ventas"
   retention_in_days = 7
@@ -161,7 +144,6 @@ resource "aws_cloudwatch_log_group" "ecs_backend_despacho" {
   retention_in_days = 7
 }
 
-# Task Definition - Backend Ventas
 resource "aws_ecs_task_definition" "backend_ventas" {
   family                   = "${var.nombre_proyecto}-backend-ventas"
   network_mode             = "bridge"
@@ -204,7 +186,6 @@ resource "aws_ecs_task_definition" "backend_ventas" {
   ])
 }
 
-# Task Definition - Backend Despacho
 resource "aws_ecs_task_definition" "backend_despacho" {
   family                   = "${var.nombre_proyecto}-backend-despacho"
   network_mode             = "bridge"
@@ -247,7 +228,6 @@ resource "aws_ecs_task_definition" "backend_despacho" {
   ])
 }
 
-# ECS Service - Backend Ventas
 resource "aws_ecs_service" "backend_ventas" {
   name            = "${var.nombre_proyecto}-backend-ventas-service"
   cluster         = aws_ecs_cluster.main.id
@@ -263,7 +243,6 @@ resource "aws_ecs_service" "backend_ventas" {
   depends_on = [aws_ecs_cluster_capacity_providers.main]
 }
 
-# ECS Service - Backend Despacho
 resource "aws_ecs_service" "backend_despacho" {
   name            = "${var.nombre_proyecto}-backend-despacho-service"
   cluster         = aws_ecs_cluster.main.id
@@ -277,10 +256,4 @@ resource "aws_ecs_service" "backend_despacho" {
   }
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
-}
-
-# Outputs
-output "backend_despacho_ecr" {
-  description = "URL ECR backend despacho"
-  value       = aws_ecr_repository.backend_despacho.repository_url
 }

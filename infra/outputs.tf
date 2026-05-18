@@ -23,12 +23,12 @@ output "frontend_sg_id" {
   value       = aws_security_group.frontend_sg.id
 }
 
-output "backend_ecr" {
-  description = "URL del repositorio ECR backend"
-  value       = aws_ecr_repository.backend.repository_url
-}
-
 output "frontend_ecr" {
   description = "URL del repositorio ECR frontend"
   value       = aws_ecr_repository.frontend.repository_url
+}
+
+output "backend_despacho_ecr" {
+  description = "URL ECR backend despacho"
+  value       = aws_ecr_repository.backend_despacho.repository_url
 }
