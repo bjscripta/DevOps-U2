@@ -19,6 +19,7 @@ resource "aws_instance" "db" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.data_sg.id]
   key_name               = var.key_pair_name
+  iam_instance_profile   = data.aws_iam_instance_profile.lab_profile.name
 
   root_block_device {
     volume_size = 20
@@ -69,6 +70,7 @@ resource "aws_instance" "backend" {
   subnet_id              = aws_subnet.private.id
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
   key_name               = var.key_pair_name
+  iam_instance_profile   = data.aws_iam_instance_profile.lab_profile.name
 
   depends_on = [aws_nat_gateway.nat]
 
@@ -104,6 +106,7 @@ resource "aws_instance" "frontend" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.frontend_sg.id]
   key_name               = var.key_pair_name
+  iam_instance_profile   = data.aws_iam_instance_profile.lab_profile.name
 
   user_data = <<-EOF
     #!/bin/bash

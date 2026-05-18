@@ -1,205 +1,286 @@
-############################
-# TODO MALO ECS
-############################
+# ============================================================
+# ecs.tf - ECS con EC2, sin ALB, version simplificada
+# Agregar a tu carpeta Terraform existente
+# ============================================================
 
-resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/${var.nombre_proyecto}"
-  retention_in_days = 7
+# AMI optimizada para ECS
+data "aws_ami" "ecs_optimized" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-ecs-hvm-*-x86_64"]
+  }
 }
 
+# ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.nombre_proyecto}-cluster"
 }
 
-resource "aws_security_group" "alb_sg" {
-  name        = "${var.nombre_proyecto}-alb-sg"
-  description = "Security group for ALB"
-  vpc_id      = aws_vpc.main.id
+# Launch Template - instancia EC2 que se une al cluster
+resource "aws_launch_template" "ecs" {
+  name_prefix   = "${var.nombre_proyecto}-ecs-"
+  image_id      = data.aws_ami.ecs_optimized.id
+  instance_type = "t2.micro"
+  key_name      = var.key_pair_name
 
-  ingress {
-    description = "HTTP from internet"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  iam_instance_profile {
+    name = data.aws_iam_instance_profile.lab_profile.name
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  vpc_security_group_ids = [aws_security_group.frontend_sg.id]
+
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+  EOF
+  )
+}
+
+# Auto Scaling Group
+resource "aws_autoscaling_group" "ecs" {
+  name                = "${var.nombre_proyecto}-ecs-asg"
+  desired_capacity    = 1
+  min_size            = 1
+  max_size            = 1
+  vpc_zone_identifier = [aws_subnet.public.id]
+
+  launch_template {
+    id      = aws_launch_template.ecs.id
+    version = "$Latest"
   }
 
-  tags = {
-    Name = "${var.nombre_proyecto}-alb-sg"
+  tag {
+    key                 = "AmazonECSManaged"
+    value               = true
+    propagate_at_launch = true
   }
 }
 
-resource "aws_lb" "main" {
-  name               = "${var.nombre_proyecto}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.public.id, aws_subnet.public_b.id]
+# Capacity Provider
+resource "aws_ecs_capacity_provider" "main" {
+  name = "${var.nombre_proyecto}-cp"
 
-  tags = {
-    Name = "${var.nombre_proyecto}-alb"
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.ecs.arn
+
+    managed_scaling {
+      status          = "ENABLED"
+      target_capacity = 100
+    }
   }
 }
 
-resource "aws_lb_target_group" "frontend" {
-  name        = "${var.nombre_proyecto}-tg"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = [aws_ecs_capacity_provider.main.name]
 
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 5
-    interval            = 30
-    path                = "/"
-  }
-
-  tags = {
-    Name = "${var.nombre_proyecto}-tg"
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    weight            = 1
+    base              = 1
   }
 }
 
-resource "aws_lb_listener" "frontend" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
-  }
+# CloudWatch Logs
+resource "aws_cloudwatch_log_group" "ecs_frontend" {
+  name              = "/ecs/${var.nombre_proyecto}-frontend"
+  retention_in_days = 7
 }
 
-resource "aws_ecs_task_definition" "app" {
-  family                   = "${var.nombre_proyecto}-app"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"
-  memory                   = "2048"
+# Task Definition
+resource "aws_ecs_task_definition" "frontend" {
+  family                   = "${var.nombre_proyecto}-frontend"
+  network_mode             = "bridge"
+  requires_compatibilities = ["EC2"]
   execution_role_arn       = data.aws_iam_role.lab.arn
 
   container_definitions = jsonencode([
-
     {
-      name  = "backend"
-      image = "${aws_ecr_repository.backend.repository_url}:latest"
-
-      portMappings = [
-        {
-          containerPort = 8080
-        }
-      ]
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
-
-      environment = [
-        {
-          name  = "DB_HOST",
-          value = aws_instance.db.private_ip
-        },
-        {
-          name  = "DB_PORT",
-          value = "3306"
-        },
-        {
-          name  = "DB_NAME",
-          value = "innovatech_db"
-        },
-        {
-          name  = "DB_USERNAME",
-          value = "root"
-        },
-        {
-          name  = "DB_PASSWORD",
-          value = "root"
-        }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.ecs.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "backend"
-        }
-      }
-    },
-
-    {
-      name  = "frontend"
-      image = "${aws_ecr_repository.frontend.repository_url}:latest"
+      name      = "frontend"
+      image     = "${aws_ecr_repository.frontend.repository_url}:latest"
+      essential = true
+      memory    = 256
+      cpu       = 256
 
       portMappings = [
         {
           containerPort = 80
-        }
-      ]
-
-      dependsOn = [
-        {
-          containerName = "backend"
-          condition     = "START"
+          hostPort      = 80
+          protocol      = "tcp"
         }
       ]
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.ecs.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "frontend"
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_frontend.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "frontend"
         }
       }
     }
-
   ])
 }
 
-resource "aws_ecs_service" "app" {
-  name            = "app"
+# ECS Service
+resource "aws_ecs_service" "frontend" {
+  name            = "${var.nombre_proyecto}-frontend-service"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
-  launch_type     = "FARGATE"
+  task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = 1
 
-  force_new_deployment = true
-
-  deployment_minimum_healthy_percent = 0
-  deployment_maximum_percent         = 100
-
-  network_configuration {
-    subnets          = [aws_subnet.public.id, aws_subnet.public_b.id]
-    security_groups  = [aws_security_group.backend_sg.id]
-    assign_public_ip = true
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    weight            = 1
+    base              = 1
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.frontend.arn
-    container_name   = "frontend"
-    container_port   = 80
+  depends_on = [aws_ecs_cluster_capacity_providers.main]
+}
+# ============================================================
+# AGREGAR al ecs.tf existente
+# ============================================================
+
+# ECR para backend despacho
+resource "aws_ecr_repository" "backend_despacho" {
+  name         = "${var.nombre_proyecto}-backend-despacho"
+  force_delete = true
+}
+
+# CloudWatch Logs para backends
+resource "aws_cloudwatch_log_group" "ecs_backend_ventas" {
+  name              = "/ecs/${var.nombre_proyecto}-backend-ventas"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "ecs_backend_despacho" {
+  name              = "/ecs/${var.nombre_proyecto}-backend-despacho"
+  retention_in_days = 7
+}
+
+# Task Definition - Backend Ventas
+resource "aws_ecs_task_definition" "backend_ventas" {
+  family                   = "${var.nombre_proyecto}-backend-ventas"
+  network_mode             = "bridge"
+  requires_compatibilities = ["EC2"]
+  execution_role_arn       = data.aws_iam_role.lab.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "backend-ventas"
+      image     = "${aws_ecr_repository.backend.repository_url}:latest"
+      essential = true
+      memory    = 256
+      cpu       = 256
+
+      portMappings = [
+        {
+          containerPort = 8080
+          hostPort      = 8080
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        { name = "DB_HOST",     value = aws_instance.db.private_ip },
+        { name = "DB_PORT",     value = "3306" },
+        { name = "DB_NAME",     value = var.db_name },
+        { name = "DB_USERNAME", value = var.db_user },
+        { name = "DB_PASSWORD", value = var.db_password }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_backend_ventas.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend-ventas"
+        }
+      }
+    }
+  ])
+}
+
+# Task Definition - Backend Despacho
+resource "aws_ecs_task_definition" "backend_despacho" {
+  family                   = "${var.nombre_proyecto}-backend-despacho"
+  network_mode             = "bridge"
+  requires_compatibilities = ["EC2"]
+  execution_role_arn       = data.aws_iam_role.lab.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "backend-despacho"
+      image     = "${aws_ecr_repository.backend_despacho.repository_url}:latest"
+      essential = true
+      memory    = 256
+      cpu       = 256
+
+      portMappings = [
+        {
+          containerPort = 8080
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        { name = "DB_HOST",     value = aws_instance.db.private_ip },
+        { name = "DB_PORT",     value = "3306" },
+        { name = "DB_NAME",     value = var.db_name },
+        { name = "DB_USERNAME", value = var.db_user },
+        { name = "DB_PASSWORD", value = var.db_password }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_backend_despacho.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend-despacho"
+        }
+      }
+    }
+  ])
+}
+
+# ECS Service - Backend Ventas
+resource "aws_ecs_service" "backend_ventas" {
+  name            = "${var.nombre_proyecto}-backend-ventas-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.backend_ventas.arn
+  desired_count   = 1
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    weight            = 1
+    base              = 0
   }
 
-  depends_on = [aws_lb_listener.frontend]
+  depends_on = [aws_ecs_cluster_capacity_providers.main]
 }
 
-output "alb_dns_name" {
-  description = "DNS name del Load Balancer"
-  value       = aws_lb.main.dns_name
+# ECS Service - Backend Despacho
+resource "aws_ecs_service" "backend_despacho" {
+  name            = "${var.nombre_proyecto}-backend-despacho-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.backend_despacho.arn
+  desired_count   = 1
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    weight            = 1
+    base              = 0
+  }
+
+  depends_on = [aws_ecs_cluster_capacity_providers.main]
 }
 
+# Outputs
+output "backend_despacho_ecr" {
+  description = "URL ECR backend despacho"
+  value       = aws_ecr_repository.backend_despacho.repository_url
+}

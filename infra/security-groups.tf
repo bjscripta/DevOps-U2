@@ -84,3 +84,4 @@ resource "aws_security_group" "data_sg" {
     Name = "innova-data-sg"
   }
 }
+
