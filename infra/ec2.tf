@@ -27,27 +27,34 @@ resource "aws_instance" "db" {
 
   user_data = <<-EOF
     #!/bin/bash
+
     yum update -y
     yum install -y docker
+
     systemctl start docker
     systemctl enable docker
 
+    # Esperar a que Docker esté realmente listo
     until docker info > /dev/null 2>&1; do
       echo "Esperando Docker..."
       sleep 3
     done
 
+    # Limpiar espacio por si acaso
     docker system prune -af
 
+    # Levantar MySQL optimizado
     docker run -d \
-      --name mysql \
-      -e MYSQL_ROOT_PASSWORD=root \
-      -e MYSQL_DATABASE=innovatech_db \
-      -e MYSQL_ROOT_HOST=% \
-      -p 3306:3306 \
-      --restart always \
-      mysql:8.0 \
-      --bind-address=0.0.0.0
+    --name mysql \
+    -e MYSQL_ROOT_PASSWORD=root \
+    -e MYSQL_DATABASE=innova_db \
+    -e MYSQL_ROOT_HOST=% \
+    -p 3306:3306 \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    mysql:8-oracle \
+    --bind-address=0.0.0.0 \
+    --performance-schema=OFF
   EOF
 
   tags = {
