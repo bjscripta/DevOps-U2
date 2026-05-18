@@ -39,3 +39,34 @@
 ---
 
 ## 📁 Estructura del Proyecto
+DevOps-U2/
+├── backend/
+│ ├── Springboot-API-REST-DESPACHO/
+│ │ ├── Dockerfile
+│ │ ├── entrypoint.sh
+│ │ ├── pom.xml
+│ │ └── src/
+│ └── Springboot-API-REST-VENTAS/
+│ ├── Dockerfile
+│ ├── entrypoint.sh
+│ ├── pom.xml
+│ └── src/
+├── front_despacho/
+│ ├── Dockerfile
+│ ├── nginx.conf
+│ ├── package.json
+│ ├── vite.config.js
+│ └── src/
+├── infra/
+│ ├── ec2.tf
+│ ├── ecr.tf
+│ ├── ecs.tf
+│ ├── outputs.tf
+│ ├── provider.tf
+│ ├── security-groups.tf
+│ ├── subredes.tf
+│ ├── variables.tf
+│ ├── vpc.tf
+│ └── terraform.tfvars
+├── docker-compose.yml
+└── README.md
