@@ -1,8 +1,9 @@
-
 # ============================================================
-# AMI ECS OPTIMIZED (OBLIGATORIO)
+# ecs.tf - ECS con EC2, sin ALB, version simplificada
+# Agregar a tu carpeta Terraform existente
 # ============================================================
 
+# AMI optimizada para ECS
 data "aws_ami" "ecs_optimized" {
   most_recent = true
   owners      = ["amazon"]
@@ -12,22 +13,18 @@ data "aws_ami" "ecs_optimized" {
     values = ["al2023-ami-ecs-hvm-*-x86_64"]
   }
 }
-# ============================================================
-# ECS CLUSTER
-# ============================================================
 
+# ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.nombre_proyecto}-cluster"
 }
 
-# ============================================================
-# LAUNCH TEMPLATE
-# ============================================================
-
+# Launch Template - instancia EC2 que se une al cluster
 resource "aws_launch_template" "ecs" {
   name_prefix   = "${var.nombre_proyecto}-ecs-"
   image_id      = data.aws_ami.ecs_optimized.id
   instance_type = "t2.micro"
+  key_name      = var.key_pair_name
 
   iam_instance_profile {
     name = data.aws_iam_instance_profile.lab_profile.name
@@ -42,10 +39,7 @@ resource "aws_launch_template" "ecs" {
   )
 }
 
-# ============================================================
-# ASG
-# ============================================================
-
+# Auto Scaling Group
 resource "aws_autoscaling_group" "ecs" {
   name                = "${var.nombre_proyecto}-ecs-asg"
   desired_capacity    = 1
@@ -65,10 +59,7 @@ resource "aws_autoscaling_group" "ecs" {
   }
 }
 
-# ============================================================
-# CAPACITY PROVIDER
-# ============================================================
-
+# Capacity Provider
 resource "aws_ecs_capacity_provider" "main" {
   name = "${var.nombre_proyecto}-cp"
 
@@ -93,24 +84,13 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ============================================================
-# LOG GROUPS
-# ============================================================
-
+# CloudWatch Logs
 resource "aws_cloudwatch_log_group" "ecs_frontend" {
   name              = "/ecs/${var.nombre_proyecto}-frontend"
   retention_in_days = 7
 }
 
-resource "aws_cloudwatch_log_group" "ecs_backend" {
-  name              = "/ecs/${var.nombre_proyecto}-backend"
-  retention_in_days = 7
-}
-
-# ============================================================
-# FRONTEND (SIN CAMBIOS)
-# ============================================================
-
+# Task Definition
 resource "aws_ecs_task_definition" "frontend" {
   family                   = "${var.nombre_proyecto}-frontend"
   network_mode             = "bridge"
@@ -129,21 +109,23 @@ resource "aws_ecs_task_definition" "frontend" {
         {
           containerPort = 80
           hostPort      = 80
+          protocol      = "tcp"
         }
       ]
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.ecs_frontend.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "frontend"
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_frontend.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "frontend"
         }
       }
     }
   ])
 }
 
+# ECS Service
 resource "aws_ecs_service" "frontend" {
   name            = "${var.nombre_proyecto}-frontend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -158,30 +140,47 @@ resource "aws_ecs_service" "frontend" {
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
 }
-
 # ============================================================
-# BACKEND UNIFICADO (usa TU ECR EXISTENTE)
+# AGREGAR al ecs.tf existente
 # ============================================================
 
-resource "aws_ecs_task_definition" "backend" {
-  family                   = "${var.nombre_proyecto}-backend"
+# ECR para backend despacho
+resource "aws_ecr_repository" "backend_despacho" {
+  name         = "${var.nombre_proyecto}-backend-despacho"
+  force_delete = true
+}
+
+# CloudWatch Logs para backends
+resource "aws_cloudwatch_log_group" "ecs_backend_ventas" {
+  name              = "/ecs/${var.nombre_proyecto}-backend-ventas"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "ecs_backend_despacho" {
+  name              = "/ecs/${var.nombre_proyecto}-backend-despacho"
+  retention_in_days = 7
+}
+
+# Task Definition - Backend Ventas
+resource "aws_ecs_task_definition" "backend_ventas" {
+  family                   = "${var.nombre_proyecto}-backend-ventas"
   network_mode             = "bridge"
   requires_compatibilities = ["EC2"]
   execution_role_arn       = data.aws_iam_role.lab.arn
 
   container_definitions = jsonencode([
     {
-      name      = "backend"
+      name      = "backend-ventas"
       image     = "${aws_ecr_repository.backend.repository_url}:latest"
       essential = true
-
-      memory = 512
-      cpu    = 256
+      memory    = 256
+      cpu       = 256
 
       portMappings = [
         {
           containerPort = 8080
           hostPort      = 8080
+          protocol      = "tcp"
         }
       ]
 
@@ -196,23 +195,63 @@ resource "aws_ecs_task_definition" "backend" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.ecs_backend.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "backend"
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_backend_ventas.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend-ventas"
         }
       }
     }
   ])
 }
 
-# ============================================================
-# BACKEND SERVICE
-# ============================================================
+# Task Definition - Backend Despacho
+resource "aws_ecs_task_definition" "backend_despacho" {
+  family                   = "${var.nombre_proyecto}-backend-despacho"
+  network_mode             = "bridge"
+  requires_compatibilities = ["EC2"]
+  execution_role_arn       = data.aws_iam_role.lab.arn
 
-resource "aws_ecs_service" "backend" {
-  name            = "${var.nombre_proyecto}-backend-service"
+  container_definitions = jsonencode([
+    {
+      name      = "backend-despacho"
+      image     = "${aws_ecr_repository.backend_despacho.repository_url}:latest"
+      essential = true
+      memory    = 256
+      cpu       = 256
+
+      portMappings = [
+        {
+          containerPort = 8080
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        { name = "DB_HOST",     value = aws_instance.db.private_ip },
+        { name = "DB_PORT",     value = "3306" },
+        { name = "DB_NAME",     value = var.db_name },
+        { name = "DB_USERNAME", value = var.db_user },
+        { name = "DB_PASSWORD", value = var.db_password }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_backend_despacho.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend-despacho"
+        }
+      }
+    }
+  ])
+}
+
+# ECS Service - Backend Ventas
+resource "aws_ecs_service" "backend_ventas" {
+  name            = "${var.nombre_proyecto}-backend-ventas-service"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.backend.arn
+  task_definition = aws_ecs_task_definition.backend_ventas.arn
   desired_count   = 1
 
   capacity_provider_strategy {
@@ -222,4 +261,26 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
+}
+
+# ECS Service - Backend Despacho
+resource "aws_ecs_service" "backend_despacho" {
+  name            = "${var.nombre_proyecto}-backend-despacho-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.backend_despacho.arn
+  desired_count   = 1
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    weight            = 1
+    base              = 0
+  }
+
+  depends_on = [aws_ecs_cluster_capacity_providers.main]
+}
+
+# Outputs
+output "backend_despacho_ecr" {
+  description = "URL ECR backend despacho"
+  value       = aws_ecr_repository.backend_despacho.repository_url
 }
