@@ -22,7 +22,7 @@ resource "aws_instance" "db" {
   iam_instance_profile   = data.aws_iam_instance_profile.lab_profile.name
 
   root_block_device {
-    volume_size = 20
+    volume_size = 30
     volume_type = "gp3"
   }
 
