@@ -1,34 +1,22 @@
-resource "aws_vpc" "main" {
+resource "aws_vpc" "eks_vpc" {
   cidr_block = "10.0.0.0/16"
-
   tags = {
-    Name = "innova-vpc"
+    Name = "eks-vpc"
   }
 }
-
 resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
+  vpc_id = aws_vpc.eks_vpc.id
   tags = {
-    Name = "innova-igw"
+    Name = "eks-igw"
   }
 }
-
-resource "aws_eip" "nat" {
-  domain = "vpc"
-
-  tags = {
-    Name = "innova-nat-eip"
+resource "aws_route_table" "rt" {
+  vpc_id = aws_vpc.eks_vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
-
-  depends_on = [aws_internet_gateway.igw]
-
   tags = {
-    Name = "innova-nat-gw"
+    Name = "eks-route-table"
   }
 }
