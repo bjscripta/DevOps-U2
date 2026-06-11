@@ -14,14 +14,14 @@ spec:
     spec:
       containers:
         - name: backend
-        - image: innovatech-spa-backend:latest
+          image: 654654241329.dkr.ecr.us-east-1.amazonaws.com/innovatech-spa-backend:latest
           imagePullPolicy: Always
-          ports: 
-            - containers: 8080
+          ports:
+            - containerPort: 8080
           env:
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://mysql:3306/innovatech-spa
             - name: SPRING_DATASOURCE_USERNAME
-              value: root 
+              value: root
             - name: SPRING_DATASOURCE_PASSWORD
               value: root

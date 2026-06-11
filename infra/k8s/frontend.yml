@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: innovatech-spa-backend:latest
+          image: 654654241329.dkr.ecr.us-east-1.amazonaws.com/innovatech-spa-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
