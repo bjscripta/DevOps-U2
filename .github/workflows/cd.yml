@@ -16,7 +16,6 @@ jobs:
   deploy:
     name: Deploy a ECS
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4

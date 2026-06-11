@@ -32,7 +32,9 @@ jobs:
       - name: Build y Push Frontend
         working-directory: front_despacho
         run: |
-          docker build -t $ECR_URL/innovatech-spa-frontend:latest .
+          docker build -t $ECR_URL/innovatech-spa-frontend:${{ github.sha }} .
+          docker tag $ECR_URL/innovatech-spa-frontend:${{ github.sha }} $ECR_URL/innovatech-spa-frontend:latest
+          docker push $ECR_URL/innovatech-spa-frontend:${{ github.sha }}
           docker push $ECR_URL/innovatech-spa-frontend:latest
 
   build-backend-ventas:
@@ -56,8 +58,10 @@ jobs:
       - name: Build y Push Backend Ventas
         working-directory: backend/Springboot-API-REST-VENTAS
         run: |
-          docker build -t $ECR_URL/innovatech-spa-backend:latest .
-          docker push $ECR_URL/innovatech-spa-backend:latest
+          docker build -t $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }} .
+          docker tag $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }} $ECR_URL/innovatech-spa-backend-ventas:latest
+          docker push $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }}
+          docker push $ECR_URL/innovatech-spa-backend-ventas:latest
 
   build-backend-despacho:
     name: Build Backend Despacho
@@ -80,5 +84,7 @@ jobs:
       - name: Build y Push Backend Despacho
         working-directory: backend/Springboot-API-REST-DESPACHO
         run: |
-          docker build -t $ECR_URL/innovatech-spa-backend-despacho:latest .
+          docker build -t $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }} .
+          docker tag $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }} $ECR_URL/innovatech-spa-backend-despacho:latest
+          docker push $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }}
           docker push $ECR_URL/innovatech-spa-backend-despacho:latest
