@@ -15,7 +15,7 @@ jobs:
     name: Build Frontend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout código
+      - name: Checkout codigo
         uses: actions/checkout@v4
 
       - name: Configurar credenciales AWS
@@ -37,19 +37,12 @@ jobs:
           docker push $ECR_URL/innovatech-spa-frontend:${{ github.sha }}
           docker push $ECR_URL/innovatech-spa-frontend:latest
 
-  build-backend-ventas:
-    name: Build Backend Ventas
+  build-backend:
+    name: Build Backend
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout código
+      - name: Checkout codigo
         uses: actions/checkout@v4
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-ventas-${{ hashFiles('backend/Springboot-API-REST-VENTAS/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2-ventas-
 
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
@@ -61,61 +54,19 @@ jobs:
 
       - name: Login a ECR
         uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Dar permisos a entrypoint
-        working-directory: backend/Springboot-API-REST-VENTAS
-        run: |
-          chmod +x entrypoint.sh 2>/dev/null || true
 
       - name: Build y Push Backend Ventas
         working-directory: backend/Springboot-API-REST-VENTAS
         run: |
-          
-          docker build -t $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }} .
-
-          docker tag $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }} $ECR_URL/innovatech-spa-backend-ventas:latest
-
-          docker push $ECR_URL/innovatech-spa-backend-ventas:${{ github.sha }}
-          docker push $ECR_URL/innovatech-spa-backend-ventas:latest
-
-  build-backend-despacho:
-    name: Build Backend Despacho
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-despacho-${{ hashFiles('backend/Springboot-API-REST-DESPACHO/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2-despacho-
-
-      - name: Configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login a ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Dar permisos a entrypoint
-        working-directory: backend/Springboot-API-REST-DESPACHO
-        run: |
-          chmod +x entrypoint.sh 2>/dev/null || true
+          docker build -t $ECR_URL/innovatech-spa-backend:${{ github.sha }} .
+          docker tag $ECR_URL/innovatech-spa-backend:${{ github.sha }} $ECR_URL/innovatech-spa-backend:latest
+          docker push $ECR_URL/innovatech-spa-backend:${{ github.sha }}
+          docker push $ECR_URL/innovatech-spa-backend:latest
 
       - name: Build y Push Backend Despacho
         working-directory: backend/Springboot-API-REST-DESPACHO
         run: |
-          
-          docker build -t $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }} .
-        
-          docker tag $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }} $ECR_URL/innovatech-spa-backend-despacho:latest
-        
-          docker push $ECR_URL/innovatech-spa-backend-despacho:${{ github.sha }}
-          docker push $ECR_URL/innovatech-spa-backend-despacho:latest
-          
+          docker build -t $ECR_URL/innovatech-spa-backend:${{ github.sha }} .
+          docker tag $ECR_URL/innovatech-spa-backend:${{ github.sha }} $ECR_URL/innovatech-spa-backend:latest
+          docker push $ECR_URL/innovatech-spa-backend:${{ github.sha }}
+          docker push $ECR_URL/innovatech-spa-backend:latest
